@@ -1,0 +1,12 @@
+{application, lager_websocket,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { lager_websocket_app, []}},
+  {env, []}
+ ]}.
