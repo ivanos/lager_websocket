@@ -24,6 +24,7 @@
 %% ------------------------------------------------------------------
 
 init(Level) ->
+    create_table(),
     State = #{
         level => lager_util:config_to_mask(Level)
     },
@@ -86,3 +87,10 @@ message_map(Message) ->
         severity => lager_msg:severity(Message),
         metadata => lager_msg:metadata(Message)
     }.
+
+create_table() ->
+    case catch {ok, ets:new(lager_websocket,
+                                    [named_table, public, ordered_set])} of
+        {ok, lager_websocket} -> ok;
+        {'EXIT', {badarg, _}} -> ok
+    end.
