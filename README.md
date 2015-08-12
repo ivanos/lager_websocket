@@ -1,8 +1,11 @@
 # lager_websocket
 lager event handler for websocket clients. lager_websocket is a lager sink that sends messages received from lager to clients connected via websocket.
 
-% URL
+% websocket URL
 .../lager/websocket - websocket
+
+% simple viewer
+.../lager/static/index.html
 
 % Message format
 Messages are delivered as JSON objects.

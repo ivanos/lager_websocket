@@ -10,13 +10,14 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
+    ok = start_cowboy(),
     lager_websocket_sup:start_link().
 
 stop(_State) ->
     ok.
 
 start_cowboy() ->
-    ok = erl_cowboy:routine(?MODULE,
+    ok = erl_cowboy:routing(?MODULE,
         [
 {"/lager/websocket", lager_websocket_handler, []},
 {"/lager/static/[...]", cowboy_static, {priv_dir, lager_websocket, "static"}}

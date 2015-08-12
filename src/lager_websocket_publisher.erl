@@ -77,27 +77,27 @@ code_change(_OldVsn, State, _Extra) ->
 % publish the last 5 message to new subscriber
 send_last(Pid) ->
     Records = last_messages(new_subscriber_message_count()),
-    lists:foreach(fun(Record) -> send_to_ws(Pid, Record) end, Records).
+    lists:foreach(fun(Record) -> send_to_ws(Pid, encode(Record)) end, Records).
 
 send(Pids, Record) ->
     EncodedRecord = encode(Record),
     lists:foreach(
         fun(Pid) ->
-            [send_to_ws(Pid, R) || R <- EncodedRecord]
+            send_to_ws(Pid, EncodedRecord)
         end, Pids).
 
 encode({LogId, #{message := Message,
                  datetime := {Date, Time},
                  severity := Severity,
                  metadata := Metadata}}) ->
-    {[
+    jiffy:encode({[
         {<<"logid">>, to_binary(LogId)},
         {<<"message">>, iolist_to_binary(Message)},
         {<<"date">>, iolist_to_binary(Date)},
         {<<"time">>, iolist_to_binary(Time)},
         {<<"severity">>, to_binary(Severity)},
         {<<"metadata">>, encode_metadata(Metadata)}
-    ]}.
+    ]}).
 
 encode_metadata(Metadata) ->
     {[{to_binary(Key), to_binary(Value)} || {Key, Value} <- Metadata]}.
@@ -107,7 +107,7 @@ to_binary(B) when is_binary(B) ->
 to_binary(S) when is_list(S) ->
     iolist_to_binary(S);
 to_binary(I) when is_integer(I) ->
-    integer_to_binary(I);
+    I;
 to_binary(A) when is_atom(A) ->
     atom_to_binary(A, utf8);
 to_binary(P) when is_pid(P) ->
@@ -120,7 +120,7 @@ save_message(Message) ->
     lager_websocket_archive:insert(Message).
 
 send_to_ws(Pid, Message) ->
-    send_to_ws(Pid, Message).
+    lager_websocket_handler:send(Pid, Message).
 
 new_subscriber_message_count() ->
     application:get_env(lager_websocket, new_message_count, 5).
