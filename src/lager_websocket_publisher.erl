@@ -49,7 +49,8 @@ handle_cast({subscribe, Pid}, State = #{subscribers := Subscribers}) ->
     monitor(process, Pid),
     send_last(Pid),
     {noreply, State#{subscribers := [Pid | Subscribers]}};
-handle_cast({publish, _}, State = #{subscribers := []}) ->
+handle_cast({publish, Message}, State = #{subscribers := []}) ->
+    save_message(Message),
     {noreply, State};
 handle_cast({publish, Message}, State = #{subscribers := Subscribers}) ->
     LogId = save_message(Message),

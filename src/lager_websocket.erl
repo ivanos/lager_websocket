@@ -33,7 +33,7 @@ handle_event({log, Message}, State = #{level := Levels}) ->
     case lager_util:is_loggable(Message, Levels, ?MODULE) of
         true ->
             MessageMap = message_map(Message),
-            websocket_lager_publisher:publish(MessageMap),
+            lager_websocket_publisher:publish(MessageMap),
             {ok, State};
         false ->
             {ok, State}
