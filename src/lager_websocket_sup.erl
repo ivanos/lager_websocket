@@ -23,7 +23,8 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
+    lager_websocket = ets:new(lager_websocket,
+                                        [named_table, public, ordered_set]),
     {ok, { {one_for_one, 5, 10}, [
-        ?CHILD(lager_websocket_cleaner, worker)
+        ?CHILD(lager_websocket_archive, worker)
     ]} }.
-

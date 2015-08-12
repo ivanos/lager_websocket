@@ -14,3 +14,10 @@ start(_StartType, _StartArgs) ->
 
 stop(_State) ->
     ok.
+
+start_cowboy() ->
+    ok = erl_cowboy:routine(?MODULE,
+        [
+{"/lager/websocket", lager_websocket_handler, []},
+{"/lager/static/[...]", cowboy_static, {priv_dir, lager_websocket, "static"}}
+        ]).

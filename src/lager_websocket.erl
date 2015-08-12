@@ -24,7 +24,6 @@
 %% ------------------------------------------------------------------
 
 init(Level) ->
-    create_table(),
     State = #{
         level => lager_util:config_to_mask(Level)
     },
@@ -34,7 +33,7 @@ handle_event({log, Message}, State = #{level := Levels}) ->
     case lager_util:is_loggable(Message, Levels, ?MODULE) of
         true ->
             MessageMap = message_map(Message),
-            insert_message(MessageMap),
+            websocket_lager_publisher:publish(MessageMap),
             {ok, State};
         false ->
             {ok, State}
@@ -62,23 +61,6 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
-insert_message(Message) ->
-    case ets:insert_new(lager_websocket, {next_log_id(), Message}) of
-        true ->
-            ok;
-        false ->
-            insert_message(Message)
-    end.
-
-next_log_id() ->
-    last_log_id() + 1.
-
-last_log_id() ->
-    case ets:last(lager_websocket) of
-        '$end_of_table' -> 1;
-        LastId -> LastId
-    end.
-
 message_map(Message) ->
     #{
         message => lager_msg:message(Message),
@@ -87,10 +69,3 @@ message_map(Message) ->
         severity => lager_msg:severity(Message),
         metadata => lager_msg:metadata(Message)
     }.
-
-create_table() ->
-    case catch {ok, ets:new(lager_websocket,
-                                    [named_table, public, ordered_set])} of
-        {ok, lager_websocket} -> ok;
-        {'EXIT', {badarg, _}} -> ok
-    end.

@@ -1,11 +1,14 @@
--module(lager_websocket_cleaner).
+-module(lager_websocket_archive).
 -behaviour(gen_server).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/0]).
+-export([start_link/0,
+         insert/1,
+         lookup/1,
+         last/1]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
@@ -19,7 +22,16 @@
 %% ------------------------------------------------------------------
 
 start_link() ->
-    gen_server:start_link(?MODULE, [], []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+insert(Message) ->
+    gen_server:call(?MODULE, {insert, Message}).
+
+lookup(LogId) ->
+    gen_server:call(?MODULE, {lookup, LogId}).
+
+last(Count) ->
+    gen_server:call(?MODULE, {last, Count}).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
@@ -32,6 +44,15 @@ init([]) ->
     },
     {ok, State}.
 
+handle_call({insert, Message}, _From, State) ->
+    LogId = save_message(Message),
+    {reply, LogId, State};
+handle_call({lookup, LogId}, _From, State) ->
+    Reply = ets_lookup(LogId),
+    {reply, Reply, State};
+handle_call({last, Count}, _From, State) ->
+    Reply = last_messages(last(), Count, []),
+    {reply, Reply, State};
 handle_call(Request, _From, State) ->
     {stop, {not_implemented, Request}, State}.
 
@@ -73,7 +94,7 @@ clean() ->
 clean(_, '$end_of_table') ->
     ok;
 clean(FilterFn, LogId) ->
-    case lookup(LogId) of
+    case ets_lookup(LogId) of
         [] ->
             % someone else deleted the record
             clean(FilterFn, first());
@@ -90,9 +111,6 @@ clean(FilterFn, LogId) ->
 first() ->
     ets:first(lager_websocket).
 
-lookup(Key) ->
-    ets:lookup(lager_websocket, Key).
-
 delete(Key) ->
     ets:delete(lager_websocket, Key).
 
@@ -101,3 +119,41 @@ get_env(Key, Default) ->
 
 minutes_to_microsecs(Mins) ->
     timer:minutes(Mins) * 1000.
+
+last_messages('$end_of_table', _, Acc) ->
+    Acc;
+last_messages(_, 0, Acc) ->
+    Acc;
+last_messages(Key, Count, Acc) ->
+    [Record] = ets_lookup(Key),
+    last_messages(prev(Key), Count - 1, [Record | Acc]).
+
+save_message(Message) ->
+    LogId = next_log_id(),
+    case insert_new({LogId, Message}) of
+        true ->
+            LogId;
+        false ->
+            save_message(Message)
+    end.
+
+next_log_id() ->
+    last_log_id() + 1.
+
+last_log_id() ->
+    case last() of
+        '$end_of_table' -> 1;
+        LastId -> LastId
+    end.
+
+last() ->
+    ets:last(lager_websocket).
+
+prev(Key) ->
+    ets:prev(lager_websocket, Key).
+
+ets_lookup(Key) ->
+    ets:lookup(lager_websocket, Key).
+
+insert_new(Record) ->
+    ets:insert_new(lager_websocket, Record).
