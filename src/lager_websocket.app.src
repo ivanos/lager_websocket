@@ -1,0 +1,15 @@
+{application, lager_websocket,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  jiffy,
+                  lager,
+                  erl_cowboy
+                 ]},
+  {mod, { lager_websocket_app, []}},
+  {env, []}
+ ]}.
